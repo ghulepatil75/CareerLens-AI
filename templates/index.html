@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CareerLens AI</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<header><div class="brand"><div class="logo">CL</div><div><b>CareerLens AI</b><small>Resume Intelligence</small></div></div><span class="version">v3.0</span></header>
+<main>
+<section class="hero"><p class="eyebrow">CAREER INTELLIGENCE PLATFORM</p><h1>See your resume through the <span>lens of your career.</span></h1><p>Analyze your resume using your education, career goal, target company, role and job description.</p></section>
+<section class="panel">
+<form id="resumeForm" action="/analyze" method="post" enctype="multipart/form-data">
+<h2>01 · Upload your resume</h2>
+<label class="dropzone" id="dropzone"><input id="resume" name="resume" type="file" accept=".pdf,.docx" required><strong id="fileName">Drop your PDF or DOCX resume here</strong><small>Tap to browse · Maximum 10 MB</small></label>
+<h2>02 · Career context</h2>
+<div class="grid">
+<label>Qualification<select name="qualification"><option>Diploma</option><option selected>Bachelor's Degree</option><option>Master's Degree</option><option>PhD</option></select></label>
+<label>Degree / Field<input name="degree" placeholder="e.g. Electronics Engineering"></label>
+<label>Resume Purpose<select name="purpose"><option>Internship</option><option selected>Campus Placement</option><option>Full-Time Job</option><option>Higher Education</option></select></label>
+<label>Target Job Role<input name="role" placeholder="e.g. Embedded Systems Engineer"></label>
+<label class="wide">Target Company (optional)<input name="company" placeholder="e.g. Qualcomm, TCS, Startup"></label>
+</div>
+<h2>03 · Target job description</h2>
+<textarea name="job_description" rows="6" placeholder="Paste job description for keyword matching (optional)"></textarea>
+<button type="submit"><span>Analyze My Resume</span> →</button>
+</form>
+</section>
+{% if error %}<div class="alert">{{ error }}</div>{% endif %}
+{% if result %}
+<section class="results">
+<div class="result-head"><div><p class="eyebrow">ANALYSIS COMPLETE</p><h2>Your CareerLens Report</h2><p>{{ result.context.degree or "Career profile" }} · {{ result.context.role or "General analysis" }}</p></div><span class="level">{{ result.level }}</span></div>
+<div class="metrics"><div class="metric"><small>RESUME SCORE</small><strong>{{ result.score }}<em>/100</em></strong></div><div class="metric"><small>JOB MATCH</small><strong>{{ result.job_match }}%</strong></div><div class="metric"><small>SKILLS FOUND</small><strong>{{ result.skills|length }}</strong></div></div>
+<div class="two"><article class="card"><h3>Score Breakdown</h3>{% for key,value in result.breakdown.items() %}<div class="row"><span>{{ key }}</span><b>{{ value }}</b></div><div class="bar"><i style="width:{{ [value * 6.67,100]|min }}%"></i></div>{% endfor %}</article>
+<article class="card"><h3>Detected Skills</h3>{% for group,skills in result.skill_groups.items() %}<p class="group">{{ group }}</p><div class="chips">{% for skill in skills %}<span>{{ skill }}</span>{% endfor %}</div>{% endfor %}</article></div>
+<div class="two"><article class="card"><h3>Strengths</h3><ul>{% for item in result.strengths %}<li>✓ {{ item }}</li>{% endfor %}</ul></article><article class="card"><h3>Improvement Areas</h3><ul>{% for item in result.weaknesses %}<li>! {{ item }}</li>{% endfor %}</ul></article></div>
+<article class="card"><h3>Missing Keywords</h3>{% if result.missing_keywords %}<div class="chips missing">{% for keyword in result.missing_keywords %}<span>{{ keyword }}</span>{% endfor %}</div>{% else %}<p>No job description keywords to compare.</p>{% endif %}</article>
+<article class="card"><h3>CareerLens Action Plan</h3><ol>{% for item in result.recommendations %}<li>{{ item }}</li>{% endfor %}</ol></article>
+</section>{% endif %}
+</main><footer>CareerLens AI v3 · Resume Intelligence</footer>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body></html>
