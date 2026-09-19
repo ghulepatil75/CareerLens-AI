@@ -1,1 +1,5 @@
-Flask
+Flask>=3.0,<4
+Werkzeug>=3.0,<4
+PyMuPDF>=1.24
+python-docx>=1.1
+gunicorn>=22

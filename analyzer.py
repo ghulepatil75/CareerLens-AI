@@ -1,111 +1,69 @@
 import re
-from collections import Counter
 
-SKILL_GROUPS = {
-    "Programming": ["python","java","c","c++","javascript","kotlin"],
-    "Web": ["html","css","react","node.js","flask","django"],
-    "Data & AI": ["sql","pandas","numpy","machine learning","deep learning","artificial intelligence"],
-    "Cloud & DevOps": ["git","github","docker","aws","linux"],
-    "Electronics": ["arduino","esp32","iot","embedded systems","embedded c","pcb design","vlsi","verilog","matlab"],
-    "Professional": ["leadership","teamwork","communication","problem solving","project management"]
-}
+COMMON_SKILLS = [
+    "python","java","c","c++","sql","html","css","javascript","react","flask",
+    "django","git","github","excel","communication","leadership","embedded",
+    "iot","arduino","esp32","matlab","autocad","pcb","vlsi","testing",
+    "problem solving","teamwork","linux","cloud","data analysis"
+]
+SECTIONS = ["summary","objective","education","experience","work experience",
+            "projects","skills","certifications","internship","achievements"]
 
-SECTION_ALIASES = {
-    "summary": ["summary","objective","profile"],
-    "education": ["education","qualifications"],
-    "experience": ["experience","work experience","internship"],
-    "projects": ["projects","academic projects"],
-    "skills": ["skills","technical skills"],
-    "certifications": ["certifications","certificates"],
-    "achievements": ["achievements","awards"]
-}
+def analyze_resume(text, role="", company="", job_description=""):
+    clean = re.sub(r"\s+", " ", text).strip()
+    lower = clean.lower()
+    words = re.findall(r"\b[\w+#.-]+\b", lower)
+    word_count = len(words)
+    found_skills = [s for s in COMMON_SKILLS if s in lower]
+    missing = []
+    target = (job_description + " " + role).lower()
+    for skill in COMMON_SKILLS:
+        if skill in target and skill not in lower:
+            missing.append(skill)
+    section_hits = [s for s in SECTIONS if s in lower]
+    contact_checks = {
+        "email": bool(re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", clean)),
+        "phone": bool(re.search(r"(?:\+?\d[\d ()-]{8,}\d)", clean)),
+        "linkedin": "linkedin.com" in lower,
+        "github": "github.com" in lower
+    }
+    score = 35
+    score += min(20, len(section_hits) * 3)
+    score += min(15, len(found_skills) * 1.5)
+    score += 10 if contact_checks["email"] else 0
+    score += 5 if contact_checks["phone"] else 0
+    score += 5 if word_count >= 250 else 0
+    score = int(min(100, round(score)))
 
-def clean(text):
-    return re.sub(r"\s+", " ", text.lower()).strip()
+    improvements = []
+    if word_count < 250: improvements.append("Add relevant detail about projects, experience, and achievements.")
+    if not contact_checks["email"]: improvements.append("Add a professional email address.")
+    if not contact_checks["phone"]: improvements.append("Add a valid phone number.")
+    if "summary" not in lower and "objective" not in lower: improvements.append("Add a focused professional summary or objective.")
+    if "projects" not in lower: improvements.append("Include 2–4 relevant projects with tools and outcomes.")
+    if "experience" not in lower and "internship" not in lower: improvements.append("Add internship, practical training, volunteering, or project experience.")
+    if not contact_checks["linkedin"]: improvements.append("Add a LinkedIn profile link if available.")
+    if not contact_checks["github"] and any(x in lower for x in ["python","iot","embedded","programming"]):
+        improvements.append("Add GitHub projects or a portfolio link if relevant.")
 
-def has_term(text, term):
-    return bool(re.search(r"(?<!\w)" + re.escape(term.lower()) + r"(?!\w)", text))
-
-def detect_skills(text):
-    text = clean(text)
-    groups, all_skills = {}, []
-    for group, skills in SKILL_GROUPS.items():
-        found = sorted({skill.title() for skill in skills if has_term(text, skill)})
-        if found:
-            groups[group] = found
-            all_skills.extend(found)
-    return groups, sorted(set(all_skills))
-
-def detect_sections(text):
-    text = clean(text)
-    return {section: any(has_term(text, alias) for alias in aliases)
-            for section, aliases in SECTION_ALIASES.items()}
-
-def keywords(text, limit=50):
-    stop = {"about","also","from","have","with","your","this","that","skills","skill","experience","project","projects","resume","job","work","role","company","candidate","team"}
-    words = re.findall(r"[a-zA-Z][a-zA-Z+#.-]{2,}", text.lower())
-    return [w for w, _ in Counter(w for w in words if w not in stop).most_common(limit)]
-
-def job_match(resume, description):
-    if not description.strip():
-        return 0, [], []
-    resume = clean(resume)
-    words = keywords(description)
-    if not words:
-        return 0, [], []
-    matched = [w for w in words if has_term(resume, w)]
-    missing = [w for w in words if w not in matched]
-    return min(round(len(matched) / len(words) * 100), 100), matched[:20], missing[:15]
-
-def analyze_resume(text, qualification="", degree="", purpose="", company="", role="", job_description=""):
-    sections = detect_sections(text)
-    skill_groups, skills = detect_skills(text)
-    low = clean(text)
-    score = 0
-    breakdown = {}
-    contact = 0
-    if re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", text): contact += 4
-    if "linkedin.com" in low: contact += 3
-    if "github.com" in low: contact += 3
-    breakdown["Contact & Links"] = contact
-    breakdown["Structure"] = min(sum(sections.get(x, False) for x in ["summary","education","experience","projects","skills"]) * 3, 15)
-    breakdown["Skills"] = min(round(len(skills) * 1.5), 15)
-    breakdown["Projects"] = 10 if sections["projects"] else 0
-    breakdown["Experience"] = 10 if sections["experience"] else 0
-    breakdown["Education"] = 10 if sections["education"] else 0
-    breakdown["Achievements"] = 5 if sections["achievements"] else 0
-    action_words = ["developed","built","designed","implemented","optimized","led","created","automated","improved","managed"]
-    breakdown["Impact Language"] = min(sum(low.count(w) for w in action_words) * 2, 10)
-    wc = len(text.split())
-    breakdown["Readability"] = 5 if 350 <= wc <= 1000 else (3 if wc >= 180 else 0)
-    breakdown["Career Targeting"] = 5 if role or company else 0
-    score = min(round(sum(breakdown.values())), 100)
-    match, matched, missing = job_match(text, job_description)
     strengths = []
-    if len(skills) >= 8: strengths.append("Broad skill coverage detected.")
-    if sections["projects"]: strengths.append("Projects section detected.")
-    if sections["education"]: strengths.append("Education section detected.")
-    if sections["experience"]: strengths.append("Experience or internship section detected.")
-    if "linkedin.com" in low: strengths.append("LinkedIn profile detected.")
-    if "github.com" in low: strengths.append("GitHub profile detected.")
-    if not strengths: strengths.append("Resume text was successfully extracted.")
-    weaknesses = [f"{name.title()} section may be missing." for name, present in sections.items() if not present]
-    if len(skills) < 6: weaknesses.append("Limited recognizable skills detected.")
-    if missing: weaknesses.append("Some target-job keywords are missing.")
-    recommendations = ["Tailor your strongest projects and summary to each target role."]
-    if not sections["summary"]: recommendations.append("Add a concise professional summary focused on your target role.")
-    if not sections["projects"]: recommendations.append("Add 2–4 relevant projects with technologies and outcomes.")
-    if not sections["experience"]: recommendations.append("Add internships or experience using action verbs and measurable results.")
-    if len(skills) < 6: recommendations.append("Add relevant skills that you can genuinely demonstrate.")
-    if missing: recommendations.append("Review missing job-description keywords and add only truthful skills.")
-    if company: recommendations.append(f"Create a targeted resume version for {company}.")
-    if role: recommendations.append(f"Place your strongest evidence for {role} near the top.")
-    level = "Excellent" if score >= 85 else ("Strong" if score >= 70 else ("Developing" if score >= 50 else "Needs Improvement"))
+    if found_skills: strengths.append("Relevant skills were detected.")
+    if "education" in lower: strengths.append("Education information appears to be included.")
+    if "projects" in lower: strengths.append("A projects section appears to be present.")
+    if contact_checks["email"] and contact_checks["phone"]: strengths.append("Basic contact details were detected.")
+    if not strengths: strengths.append("Your resume has been processed and can be improved with the recommendations below.")
+
     return {
-        "score": score, "level": level, "breakdown": breakdown,
-        "skills": skills, "skill_groups": skill_groups, "sections": sections,
-        "job_match": match, "matched_keywords": matched, "missing_keywords": missing,
-        "strengths": strengths[:6], "weaknesses": weaknesses[:7],
-        "recommendations": recommendations[:7], "word_count": wc,
-        "context": {"qualification": qualification, "degree": degree, "purpose": purpose, "company": company, "role": role}
+        "score": score,
+        "label": "ATS-style estimate, not a hiring prediction",
+        "word_count": word_count,
+        "sections_found": section_hits,
+        "skills_found": found_skills,
+        "missing_keywords": missing[:20],
+        "contact_checks": contact_checks,
+        "strengths": strengths,
+        "improvements": improvements,
+        "role": role or "Not specified",
+        "company": company or "Not specified",
+        "disclaimer": "This result is an educational ATS-style estimate. It does not guarantee ATS approval, interviews, or employment."
     }

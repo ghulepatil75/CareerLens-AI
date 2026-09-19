@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% block title %}Resume Analyzer | CareerLens AI{% endblock %}
+{% block content %}
+<section class="page-head"><p class="eyebrow">RESUME ANALYZER</p><h1>Review your resume</h1><p>Upload a PDF, DOCX, or TXT file up to 5 MB.</p></section>
+<section class="analyzer-layout"><form id="resume-form" class="card">
+<label>Resume file <input type="file" name="resume" accept=".pdf,.docx,.txt" required></label>
+<label>Target job role <input name="role" placeholder="e.g. Embedded Engineer"></label>
+<label>Target company (optional) <input name="company" placeholder="e.g. Company name"></label>
+<label>Job description (optional)<textarea name="job_description" rows="5" placeholder="Paste the job description here"></textarea></label>
+<p class="small">Please avoid uploading documents containing information you do not want processed. Results are estimates.</p>
+<button class="button" type="submit">Analyze Resume</button><div id="form-message"></div>
+</form><div id="results" class="card results"><h2>Your results will appear here</h2><p>Upload your resume to begin.</p></div></section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/analyzer.js') }}"></script>{% endblock %}
